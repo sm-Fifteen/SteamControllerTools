@@ -261,8 +261,15 @@ sc_config(0x87)
 
 sc_usb_setup = Proto("SC_USB_SETUP",  "USB Setup header")
 
+transferTypeField = Field.new("usb.transfer_type")
+urbTypeField = Field.new("usb.urb_type")
+
 function sc_usb_setup.dissector(tvb, pinfo, tree)
 	if tvb:len() == 0 then return false end
+	
+	-- myField() returns a FieldInfo object
+	local transferType = transferTypeField().value
+	local urbType = urbTypeField().value
 	
 	--bmRequestTypeBuf = tvb(0,1)
 	local bRequestBuf = tvb(0,1)
@@ -271,11 +278,14 @@ function sc_usb_setup.dissector(tvb, pinfo, tree)
 	local wLengthBuf = tvb(5,2)
 	local dataBuffer = tvb(7):tvb()
 	
-	if wLengthBuf:le_uint() ~= dataBuffer:len() then
+	if transferType == 2 and urbType == 83 then
+		-- Must be a control transfer, not an interrupt
+		-- Must be of type "Submit", not "Complete"
+		sc_packet_dissector:call(dataBuffer, pinfo, tree)
+	else
 		return 0
 	end
 	
-	sc_packet_dissector:call(dataBuffer, pinfo, tree)
 	return 7 + dataBuffer:len();
 end
 
