@@ -2,10 +2,11 @@ require("bit")
 
 -- Dissector Table for steam controller control packets
 scPacketTable = DissectorTable.new("sc_packet.msgType", "Steam Controller Packet", ftypes.UINT8, base.HEX)
-scConfigTable = DissectorTable.new("sc_config.configType", "Steam Controller Config", ftypes.UINT8, base.HEX)
+scConfigTable = DissectorTable.new("sc_config.configType", "Steam Controller Config", ftypes.UINT8, base.HEX) -- 0x87
+scUpdateTable = DissectorTable.new("sc_update.stateType", "Steam Controller state update", ftypes.UINT8, base.HEX) --0x01
 
 ------------------------------------------------------
--- Wrapper
+-- Wrapper (Control)
 ------------------------------------------------------
 
 function sc_packet()
@@ -57,6 +58,67 @@ function sc_packet()
 end
 
 sc_packet()
+
+------------------------------------------------------
+-- Wrapper (Interrupt)
+------------------------------------------------------
+
+function sc_update()
+	local protocol = Proto("SC_UPDATE",  "Steam Controller state upadte")
+	local msgTypeField = ProtoField.uint8("sc_packet.msgType", "Message type", base.HEX)
+	local updateTypeField = ProtoField.uint8("sc_update.msgType", "Update type", base.HEX)
+	local updateLengthField = ProtoField.uint8("sc_update.msgLength", "Update length")
+
+	protocol.fields = {
+		msgTypeField,
+		updateTypeField,
+		updateLengthField
+	}
+
+	function protocol.dissector(dataBuffer, pinfo, tree)
+		pinfo.cols.protocol = "sc_state_update";
+		
+		local msgTypeBuf = dataBuffer(0,1)
+		local msgType = msgTypeBuf:uint()
+		local updateTypeBuf = dataBuffer(2,1)
+		local updateType = updateTypeBuf:uint()
+		local updateLengthBuf = dataBuffer(3,1)
+		local updateLength = updateLengthBuf:uint()
+		
+		if msgType ~= 0x01 then return -1 end -- Only 0x01 should be an interrupt
+		
+		local subtree = tree:add(protocol,dataBuffer(0, 4 + updateLength))
+		
+		subtree:add(msgTypeField, msgTypeBuf)
+		subtree:add(updateTypeField, updateTypeBuf)
+		subtree:add(updateLengthField, updateLengthBuf)
+		
+		local packetDissector = scUpdateTable:get_dissector(updateType)
+		local updateBuffer = dataBuffer(4, updateLength):tvb()
+		
+		if packetDissector == nil then
+			updatePinfo(pinfo, updateType)
+			local undecodedEntry = subtree:add(updateBuffer(), "Unknown Steam Controller update message")
+			undecodedEntry:add_expert_info(PI_UNDECODED)
+			
+			return updateBuffer:len()
+		end
+		
+		local consumedBytes = packetDissector:call(updateBuffer, pinfo, subtree)
+		local remaining = updateBuffer(consumedBytes)
+		
+		if remaining:len() ~= 0 then
+			local remainingEntry = subtree:add(remaining, "Unknown extra bytes:", tostring(remaining:bytes()))
+			remainingEntry:add_expert_info(PI_UNDECODED, PI_NOTE)
+		end
+		
+	end
+	
+	-- Set this up so the control dissector can use it
+	sc_update_dissector = protocol.dissector
+end
+
+sc_update()
 
 ------------------------------------------------------
 -- Lookup table for built-in sound IDs
@@ -287,22 +349,25 @@ function sc_usb_setup.dissector(tvb, pinfo, tree)
 	local transferType = transferTypeField().value
 	local urbType = urbTypeField().value
 	
-	--bmRequestTypeBuf = tvb(0,1)
-	local bRequestBuf = tvb(0,1)
-	local wValueBuf = tvb(1,2)
-	local wIndexBuf = tvb(3,2)
-	local wLengthBuf = tvb(5,2)
-	local dataBuffer = tvb(7):tvb()
-	
 	if transferType == 2 and urbType == 83 then
 		-- Must be a control transfer, not an interrupt
 		-- Must be of type "Submit", not "Complete"
+	
+		--bmRequestTypeBuf = tvb(0,1)
+		local bRequestBuf = tvb(0,1)
+		local wValueBuf = tvb(1,2)
+		local wIndexBuf = tvb(3,2)
+		local wLengthBuf = tvb(5,2)
+		local dataBuffer = tvb(7):tvb()
+	
 		sc_packet_dissector:call(dataBuffer, pinfo, tree)
-	else
-		return 0
+		return 7 + dataBuffer:len();
+	elseif transferType == 1 and urbType == 67 then
+		dataBuffer = tvb():tvb()
+		sc_update_dissector:call(dataBuffer, pinfo, tree)
 	end
 	
-	return 7 + dataBuffer:len();
+	return 0
 end
 
 --Note that these only work if the device descriptors are present in the capture.
