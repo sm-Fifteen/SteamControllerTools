@@ -229,7 +229,7 @@ function sc_config(msgId)
 			if configDissector == nil then
 				configtree:add_expert_info(PI_UNDECODED)
 			else
-				configDissector:call(configBuffer(1), pinfo, tree)
+				configDissector:call(configBuffer(1):tvb(), pinfo, configtree)
 			end
 		end
 	end
@@ -243,17 +243,33 @@ sc_config(0x87)
 -- Configure 0x2d : LED control
 ------------------------------------------------------
 
+function sc_config_led(confId)
+	protocol = Proto("CONFIG_LED",  "Set led brightness")
+
+	brightnessField = ProtoField.uint8("sc_config.led.brightness", "Led brightness", base.DEC)
+	protocol.fields = {brightnessField}
+
+	function protocol.dissector(configBuffer, pinfo, configtree)
+		local brightnessBuf = configBuffer(0,1)
+		configtree:add(brightnessField, brightnessBuf)	
+		local brightness = brightnessBuf:uint()
+		pinfo.cols.info:append(": " .. "LED TO " .. brightness .. "%")
+	end
+	
+	scConfigTable:add(confId, protocol)
+end
+
+sc_config_led(0x2d)
+
 ------------------------------------------------------
 -- Configure 0x30 : ???
 ------------------------------------------------------
 
-------------------------------------------------------
--- Configure 0x32 : ???
-------------------------------------------------------
-
-------------------------------------------------------
--- Configure 0x3a : ???
-------------------------------------------------------
+-- Known configure signal (by groupings) :
+-- 0x2d
+-- 0x3a, 0x37, 0x36
+-- 0x32, 0x18, 0x31, 0x08, 0x07
+-- 0x30, 0x2e, 0x35, 0x34, 0x3b
 
 ------------------------------------------------------
 -- USB Control transfer dissector (for the setup header)
