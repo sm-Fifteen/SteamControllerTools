@@ -64,7 +64,7 @@ sc_packet()
 ------------------------------------------------------
 
 function sc_update()
-	local protocol = Proto("SC_UPDATE",  "Steam Controller state upadte")
+	local protocol = Proto("SC_UPDATE",  "Steam Controller state update")
 	local msgTypeField = ProtoField.uint8("sc_packet.msgType", "Message type", base.HEX)
 	local updateTypeField = ProtoField.uint8("sc_update.msgType", "Update type", base.HEX)
 	local updateLengthField = ProtoField.uint8("sc_update.msgLength", "Update length")
@@ -101,7 +101,7 @@ function sc_update()
 			local undecodedEntry = subtree:add(updateBuffer(), "Unknown Steam Controller update message")
 			undecodedEntry:add_expert_info(PI_UNDECODED)
 			
-			return updateBuffer:len()
+			return dataBuffer:len()
 		end
 		
 		local consumedBytes = packetDissector:call(updateBuffer, pinfo, subtree)
@@ -112,6 +112,7 @@ function sc_update()
 			remainingEntry:add_expert_info(PI_UNDECODED, PI_NOTE)
 		end
 		
+		return dataBuffer:len()
 	end
 	
 	-- Set this up so the control dissector can use it
@@ -324,6 +325,35 @@ end
 sc_config_led(0x2d)
 
 ------------------------------------------------------
+-- Update 0x04 : Power level
+------------------------------------------------------
+
+function sc_update_power(updateId)
+	protocol = Proto("UPDATE_ENERGY",  "Battery update")
+
+	sequenceField = ProtoField.uint8("sc_update.energy.sequence", "Sequence number", base.DEC)
+	voltageField = ProtoField.uint8("sc_update.energy.voltage", "Voltage", base.DEC)
+	protocol.fields = {sequenceField, voltageField}
+
+	function protocol.dissector(updateBuffer, pinfo, subtree)
+		local sequenceBuf = updateBuffer(0,2)
+		subtree:add_le(sequenceField, sequenceBuf)
+		
+		local voltageBuf = updateBuffer(8,2)
+		subtree:add_le(voltageField, voltageBuf)
+		
+		updatePinfo(pinfo, updateId)
+		
+		--pinfo.cols.info:append(": " .. "LED TO " .. brightness .. "%")
+		return 10
+	end
+	
+	scUpdateTable:add(updateId, protocol)
+end
+
+sc_update_power(0x04)
+
+------------------------------------------------------
 -- Configure 0x30 : ???
 ------------------------------------------------------
 
@@ -364,7 +394,7 @@ function sc_usb_setup.dissector(tvb, pinfo, tree)
 		return 7 + dataBuffer:len();
 	elseif transferType == 1 and urbType == 67 then
 		dataBuffer = tvb():tvb()
-		sc_update_dissector:call(dataBuffer, pinfo, tree)
+		return sc_update_dissector:call(dataBuffer, pinfo, tree)
 	end
 	
 	return 0
