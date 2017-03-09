@@ -370,13 +370,14 @@ function sc_update_input(updateId)
 	rAnalogYField = ProtoField.int16("sc_update.input.Rpad.y", "Right trackpad Y", base.DEC)
 	lTrigger16Field = ProtoField.uint16("sc_update.input.LT.value16", "Left Trigger 16-bit value", base.DEC)
 	rTrigger16Field = ProtoField.uint16("sc_update.input.RT.value16", "Right Trigger 16-bit value", base.DEC)
-	gyroPitchField = ProtoField.int16("sc_update.input.gyro.gimbal.pitch", "Pitch", base.DEC)
-	gyroYawField = ProtoField.int16("sc_update.input.gyro.gimbal.yaw", "Yaw", base.DEC)
-	gyroRollField = ProtoField.int16("sc_update.input.gyro.gimbal.roll", "Roll", base.DEC)
-	gyroQuatRealField = ProtoField.int16("sc_update.input.gyro.quaternion.real", "Quaternion real part", base.DEC)
-	gyroQuatIField = ProtoField.int16("sc_update.input.gyro.quaternion.i", "Quaternion i part", base.DEC)
-	gyroQuatJField = ProtoField.int16("sc_update.input.gyro.quaternion.j", "Quaternion j part", base.DEC)
-	gyroQuatKField = ProtoField.int16("sc_update.input.gyro.quaternion.k", "Quaternion k part", base.DEC)
+	
+	gyroPitchField = ProtoField.int16("sc_update.input.gyro.velocity.pitch", "Pitch velocity", base.DEC)
+	gyroYawField = ProtoField.int16("sc_update.input.gyro.velocity.yaw", "Yaw velocity", base.DEC)
+	gyroRollField = ProtoField.int16("sc_update.input.gyro.velocity.roll", "Roll velocity", base.DEC)
+	gyroQuatWField = ProtoField.int16("sc_update.input.gyro.orientation.w", "Orientation quaternion w", base.DEC)
+	gyroQuatXField = ProtoField.int16("sc_update.input.gyro.orientation.x", "Orientation quaternion x", base.DEC)
+	gyroQuatYField = ProtoField.int16("sc_update.input.gyro.orientation.y", "Orientation quaternion y", base.DEC)
+	gyroQuatZField = ProtoField.int16("sc_update.input.gyro.orientation.z", "Orientation quaternion z", base.DEC)
 	
 	lPadXField = ProtoField.int16("sc_update.input.Lpad.x", "Left trackpad X", base.DEC)
 	lPadYField = ProtoField.int16("sc_update.input.Lpad.y", "Left trackpad Y", base.DEC)
@@ -389,8 +390,8 @@ function sc_update_input(updateId)
 		sequenceField, lTriggerField, rTriggerField,
 		lAnalogXField, lAnalogYField, rAnalogXField, rAnalogYField,
 		lTrigger16Field, rTrigger16Field, gyroPitchField,
-		gyroYawField, gyroRollField, gyroQuatRealField, gyroQuatIField,
-		gyroQuatJField, gyroQuatKField, lPadXField, lPadYField,
+		gyroYawField, gyroRollField, gyroQuatWField, gyroQuatXField,
+		gyroQuatYField, gyroQuatZField, lPadXField, lPadYField,
 		lJoystickAbsXField, lJoystickAbsYField, lTriggerRawField, rTriggerRawField,
 		unpack(buttonFields)
 	}
@@ -436,14 +437,14 @@ function sc_update_input(updateId)
 		subtree:add_le(gyroYawField, gyroYawBuf)
 		subtree:add_le(gyroRollField, gyroRollBuf)
 		
-		local gyroQuatRealBuf = updateBuffer(36,2)
-		local gyroQuatIBuf = updateBuffer(38,2)
-		local gyroQuatJBuf = updateBuffer(40,2)
-		local gyroQuatKBuf = updateBuffer(42,2)
-		subtree:add_le(gyroQuatRealField, gyroQuatRealBuf)
-		subtree:add_le(gyroQuatIField, gyroQuatIBuf)
-		subtree:add_le(gyroQuatJField, gyroQuatJBuf)
-		subtree:add_le(gyroQuatKField, gyroQuatKBuf)
+		local gyroQuatWBuf = updateBuffer(36,2)
+		local gyroQuatXBuf = updateBuffer(38,2)
+		local gyroQuatYBuf = updateBuffer(40,2)
+		local gyroQuatZBuf = updateBuffer(42,2)
+		subtree:add_le(gyroQuatWField, gyroQuatWBuf)
+		subtree:add_le(gyroQuatXField, gyroQuatXBuf)
+		subtree:add_le(gyroQuatYField, gyroQuatYBuf)
+		subtree:add_le(gyroQuatZField, gyroQuatZBuf)
 
 		local lTriggerRawBuf = updateBuffer(46,2)
 		subtree:add_le(lTriggerRawField, lTriggerRawBuf)
