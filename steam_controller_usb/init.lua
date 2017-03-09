@@ -362,7 +362,29 @@ function sc_update_input(updateId)
 		ProtoField.bool("sc_update.input.RG", "Right grip", 24, {}, bit.lshift(1,0)),
 	}
 	
-	protocol.fields = {sequenceField, unpack(buttonFields)}
+	lTriggerField = ProtoField.uint8("sc_update.input.LT.analog", "Left Trigger analog value", base.DEC)
+	rTriggerField = ProtoField.uint8("sc_update.input.RT.analog", "Right Trigger analog value", base.DEC)
+	lAnalogXField = ProtoField.int16("sc_update.input.Lanalog.x", "Left joystick/trackpad X", base.DEC)
+	lAnalogYField = ProtoField.int16("sc_update.input.Lanalog.y", "Left joystick/trackpad Y", base.DEC)
+	rAnalogXField = ProtoField.int16("sc_update.input.Rpad.x", "Right trackpad X", base.DEC)
+	rAnalogYField = ProtoField.int16("sc_update.input.Rpad.y", "Right trackpad Y", base.DEC)
+	lTriggerFullField = ProtoField.uint16("sc_update.input.LT.full_analog", "Left Trigger double-precision analog value", base.DEC)
+	rTriggerFullField = ProtoField.uint16("sc_update.input.RT.full_analog", "Right Trigger double-precision analog value", base.DEC)
+	gyroPitchField = ProtoField.int16("sc_update.input.gyro.gimbal.pitch", "Pitch", base.DEC)
+	gyroYawField = ProtoField.int16("sc_update.input.gyro.gimbal.yaw", "Yaw", base.DEC)
+	gyroRollField = ProtoField.int16("sc_update.input.gyro.gimbal.roll", "Roll", base.DEC)
+	gyroQuatRealField = ProtoField.int16("sc_update.input.gyro.quaternion.real", "Quaternion real part", base.DEC)
+	gyroQuatIField = ProtoField.int16("sc_update.input.gyro.quaternion.i", "Quaternion i part", base.DEC)
+	gyroQuatJField = ProtoField.int16("sc_update.input.gyro.quaternion.j", "Quaternion j part", base.DEC)
+	gyroQuatKField = ProtoField.int16("sc_update.input.gyro.quaternion.k", "Quaternion k part", base.DEC)
+	
+	protocol.fields = {
+		sequenceField, lTriggerField, rTriggerField,
+		lAnalogXField, lAnalogYField, rAnalogXField, rAnalogYField,
+		lTriggerFullField, rTriggerFullField, gyroPitchField,
+		gyroYawField, gyroRollField, gyroQuatRealField, gyroQuatIField,
+		gyroQuatJField, gyroQuatKField, unpack(buttonFields)
+	}
 
 	function protocol.dissector(updateBuffer, pinfo, subtree)
 		local sequenceBuf = updateBuffer(0,2)
@@ -377,9 +399,46 @@ function sc_update_input(updateId)
 			buttontree:add(buttonField, buttonBuf)
 		end
 		
+		local lTriggerBuf = updateBuffer(7,1)
+		local rTriggerBuf = updateBuffer(8,1)
+		subtree:add_le(lTriggerField, lTriggerBuf)
+		subtree:add_le(rTriggerField, rTriggerBuf)
+		
+		local lAnalogXBuf = updateBuffer(12,2)
+		local lAnalogYBuf = updateBuffer(14,2)
+		subtree:add_le(lAnalogXField, lAnalogXBuf)
+		subtree:add_le(lAnalogYField, lAnalogYBuf)
+		
+		local rAnalogXBuf = updateBuffer(16,2)
+		local rAnalogYBuf = updateBuffer(18,2)
+		subtree:add_le(rAnalogXField, rAnalogXBuf)
+		subtree:add_le(rAnalogYField, rAnalogYBuf)
+		
+		local lTriggerFullBuf = updateBuffer(20,2)
+		local rTriggerFullBuf = updateBuffer(22,2)
+		subtree:add_le(lTriggerFullField, lTriggerFullBuf)
+		subtree:add_le(rTriggerFullField, rTriggerFullBuf)
+		
+		local gyroPitchBuf = updateBuffer(30,2)
+		local gyroRollBuf = updateBuffer(32,2)
+		local gyroYawBuf = updateBuffer(34,2)
+		
+		subtree:add_le(gyroPitchField, gyroPitchBuf)
+		subtree:add_le(gyroYawField, gyroYawBuf)
+		subtree:add_le(gyroRollField, gyroRollBuf)
+		
+		local gyroQuatRealBuf = updateBuffer(36,2)
+		local gyroQuatIBuf = updateBuffer(38,2)
+		local gyroQuatJBuf = updateBuffer(40,2)
+		local gyroQuatKBuf = updateBuffer(42,2)
+		subtree:add_le(gyroQuatRealField, gyroQuatRealBuf)
+		subtree:add_le(gyroQuatIField, gyroQuatIBuf)
+		subtree:add_le(gyroQuatJField, gyroQuatJBuf)
+		subtree:add_le(gyroQuatKField, gyroQuatKBuf)
+		
 		updatePinfo(pinfo, updateId)
 		
-		return 7
+		return 43
 	end
 	
 	scUpdateTable:add(updateId, protocol)
