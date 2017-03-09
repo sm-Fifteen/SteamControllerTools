@@ -362,14 +362,14 @@ function sc_update_input(updateId)
 		ProtoField.bool("sc_update.input.RG", "Right grip", 24, {}, bit.lshift(1,0)),
 	}
 	
-	lTriggerField = ProtoField.uint8("sc_update.input.LT.analog", "Left Trigger analog value", base.DEC)
-	rTriggerField = ProtoField.uint8("sc_update.input.RT.analog", "Right Trigger analog value", base.DEC)
+	lTriggerField = ProtoField.uint8("sc_update.input.LT.value8", "Left Trigger 8-bit value", base.DEC)
+	rTriggerField = ProtoField.uint8("sc_update.input.RT.value8", "Right Trigger 8-bit value", base.DEC)
 	lAnalogXField = ProtoField.int16("sc_update.input.Lanalog.x", "Left joystick/trackpad X", base.DEC)
 	lAnalogYField = ProtoField.int16("sc_update.input.Lanalog.y", "Left joystick/trackpad Y", base.DEC)
 	rAnalogXField = ProtoField.int16("sc_update.input.Rpad.x", "Right trackpad X", base.DEC)
 	rAnalogYField = ProtoField.int16("sc_update.input.Rpad.y", "Right trackpad Y", base.DEC)
-	lTriggerFullField = ProtoField.uint16("sc_update.input.LT.full_analog", "Left Trigger double-precision analog value", base.DEC)
-	rTriggerFullField = ProtoField.uint16("sc_update.input.RT.full_analog", "Right Trigger double-precision analog value", base.DEC)
+	lTrigger16Field = ProtoField.uint16("sc_update.input.LT.value16", "Left Trigger 16-bit value", base.DEC)
+	rTrigger16Field = ProtoField.uint16("sc_update.input.RT.value16", "Right Trigger 16-bit value", base.DEC)
 	gyroPitchField = ProtoField.int16("sc_update.input.gyro.gimbal.pitch", "Pitch", base.DEC)
 	gyroYawField = ProtoField.int16("sc_update.input.gyro.gimbal.yaw", "Yaw", base.DEC)
 	gyroRollField = ProtoField.int16("sc_update.input.gyro.gimbal.roll", "Roll", base.DEC)
@@ -378,12 +378,21 @@ function sc_update_input(updateId)
 	gyroQuatJField = ProtoField.int16("sc_update.input.gyro.quaternion.j", "Quaternion j part", base.DEC)
 	gyroQuatKField = ProtoField.int16("sc_update.input.gyro.quaternion.k", "Quaternion k part", base.DEC)
 	
+	lPadXField = ProtoField.int16("sc_update.input.Lpad.x", "Left trackpad X", base.DEC)
+	lPadYField = ProtoField.int16("sc_update.input.Lpad.y", "Left trackpad Y", base.DEC)
+	lJoystickAbsXField = ProtoField.int16("sc_update.input.Lstick.absX", "Left joystick absolute X", base.DEC)
+	lJoystickAbsYField = ProtoField.int16("sc_update.input.Lstick.absY", "Left joystick absolute Y", base.DEC)
+	lTriggerRawField = ProtoField.uint16("sc_update.input.LT.valueRaw", "Left Trigger analog value")
+	rTriggerRawField = ProtoField.uint16("sc_update.input.RT.valueRaw", "Right Trigger analog value")
+	
 	protocol.fields = {
 		sequenceField, lTriggerField, rTriggerField,
 		lAnalogXField, lAnalogYField, rAnalogXField, rAnalogYField,
-		lTriggerFullField, rTriggerFullField, gyroPitchField,
+		lTrigger16Field, rTrigger16Field, gyroPitchField,
 		gyroYawField, gyroRollField, gyroQuatRealField, gyroQuatIField,
-		gyroQuatJField, gyroQuatKField, unpack(buttonFields)
+		gyroQuatJField, gyroQuatKField, lPadXField, lPadYField,
+		lJoystickAbsXField, lJoystickAbsYField, lTriggerRawField, rTriggerRawField,
+		unpack(buttonFields)
 	}
 
 	function protocol.dissector(updateBuffer, pinfo, subtree)
@@ -414,10 +423,10 @@ function sc_update_input(updateId)
 		subtree:add_le(rAnalogXField, rAnalogXBuf)
 		subtree:add_le(rAnalogYField, rAnalogYBuf)
 		
-		local lTriggerFullBuf = updateBuffer(20,2)
-		local rTriggerFullBuf = updateBuffer(22,2)
-		subtree:add_le(lTriggerFullField, lTriggerFullBuf)
-		subtree:add_le(rTriggerFullField, rTriggerFullBuf)
+		local lTrigger16Buf = updateBuffer(20,2)
+		local rTrigger16Buf = updateBuffer(22,2)
+		subtree:add_le(lTrigger16Field, lTrigger16Buf)
+		subtree:add_le(rTrigger16Field, rTrigger16Buf)
 		
 		local gyroPitchBuf = updateBuffer(30,2)
 		local gyroRollBuf = updateBuffer(32,2)
@@ -435,10 +444,26 @@ function sc_update_input(updateId)
 		subtree:add_le(gyroQuatIField, gyroQuatIBuf)
 		subtree:add_le(gyroQuatJField, gyroQuatJBuf)
 		subtree:add_le(gyroQuatKField, gyroQuatKBuf)
+
+		local lTriggerRawBuf = updateBuffer(46,2)
+		subtree:add_le(lTriggerRawField, lTriggerRawBuf)
+		
+		local rTriggerRawBuf = updateBuffer(48,2)
+		subtree:add_le(rTriggerRawField, rTriggerRawBuf)
+		
+		local lJoystickAbsXBuf = updateBuffer(50,2)
+		local lJoystickAbsYBuf = updateBuffer(52,2)
+		subtree:add_le(lJoystickAbsXField, lJoystickAbsXBuf)
+		subtree:add_le(lJoystickAbsYField, lJoystickAbsYBuf)
+		
+		local lPadXBuf = updateBuffer(54,2)
+		local lPadYBuf = updateBuffer(56,2)
+		subtree:add_le(lPadXField, lPadXBuf)
+		subtree:add_le(lPadYField, lPadYBuf)
 		
 		updatePinfo(pinfo, updateId)
 		
-		return 43
+		return 58
 	end
 	
 	scUpdateTable:add(updateId, protocol)
