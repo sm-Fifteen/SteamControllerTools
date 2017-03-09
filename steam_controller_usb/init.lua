@@ -325,6 +325,69 @@ end
 sc_config_led(0x2d)
 
 ------------------------------------------------------
+-- Update 0x01 : Input
+------------------------------------------------------
+
+function sc_update_input(updateId)
+	protocol = Proto("UPDATE_INPUT",  "Input update")
+
+	sequenceField = ProtoField.uint32("sc_update.input.sequence", "Sequence number", base.DEC)
+	
+	buttonFields = {
+		ProtoField.bool("sc_update.input.A", "A button", 24, {}, bit.lshift(1,23)),
+		ProtoField.bool("sc_update.input.X", "X button", 24, {}, bit.lshift(1,22)),
+		ProtoField.bool("sc_update.input.B", "B button", 24, {}, bit.lshift(1,21)),
+		ProtoField.bool("sc_update.input.Y", "Y button", 24, {}, bit.lshift(1,20)),
+		ProtoField.bool("sc_update.input.LB", "Left bumper", 24, {}, bit.lshift(1,19)),
+		ProtoField.bool("sc_update.input.RB", "Right bumper", 24, {}, bit.lshift(1,18)),
+		ProtoField.bool("sc_update.input.LT.click", "Left trigger click", 24, {}, bit.lshift(1,17)),
+		ProtoField.bool("sc_update.input.RT.click", "Right trigger click", 24, {}, bit.lshift(1,16)),
+		
+		ProtoField.bool("sc_update.input.LG", "Left grip", 24, {}, bit.lshift(1,15)),
+		ProtoField.bool("sc_update.input.start", "Start button", 24, {}, bit.lshift(1,14)),
+		ProtoField.bool("sc_update.input.home", "Home button", 24, {}, bit.lshift(1,13)),
+		ProtoField.bool("sc_update.input.select", "Select button", 24, {}, bit.lshift(1,12)),
+		ProtoField.bool("sc_update.input.Lpad.down", "Left trackpad down", 24, {}, bit.lshift(1,11)),
+		ProtoField.bool("sc_update.input.Lpad.left", "Left trackpad left", 24, {}, bit.lshift(1,10)),	
+		ProtoField.bool("sc_update.input.Lpad.right", "Left trackpad right", 24, {}, bit.lshift(1,9)),
+		ProtoField.bool("sc_update.input.Lpad.up", "Left trackpad up", 24, {}, bit.lshift(1,8)),
+		
+		-- 7 is "Lanalog is sent for both Ljoystick and Lpad" (use with bit 3)
+		-- 6 is "Lclick is Ljoystick" (use with bit 1)
+		-- 5 seems unused
+		ProtoField.bool("sc_update.input.Rpad.touch", "Right trackpad touched", 24, {}, bit.lshift(1,4)),
+		ProtoField.bool("sc_update.input.Lpad.touch", "Left trackpad touched", 24, {}, bit.lshift(1,3)),
+		ProtoField.bool("sc_update.input.Rpad.click", "Right trackpad click", 24, {}, bit.lshift(1,2)),
+		ProtoField.bool("sc_update.input.Lpad.click", "Left trackpad/joystick click", 24, {}, bit.lshift(1,1)),	
+		ProtoField.bool("sc_update.input.RG", "Right grip", 24, {}, bit.lshift(1,0)),
+	}
+	
+	protocol.fields = {sequenceField, unpack(buttonFields)}
+
+	function protocol.dissector(updateBuffer, pinfo, subtree)
+		local sequenceBuf = updateBuffer(0,2)
+		subtree:add_le(sequenceField, sequenceBuf)
+		
+		
+		local buttonBuf = updateBuffer(4,3)
+		local buttontree = subtree:add(buttonBuf, "Buttons")
+		
+		for _, buttonField in ipairs(buttonFields) do
+			-- Bitfields are always displayed as BE, so :/
+			buttontree:add(buttonField, buttonBuf)
+		end
+		
+		updatePinfo(pinfo, updateId)
+		
+		return 7
+	end
+	
+	scUpdateTable:add(updateId, protocol)
+end
+
+sc_update_input(0x01)
+
+------------------------------------------------------
 -- Update 0x04 : Power level
 ------------------------------------------------------
 
