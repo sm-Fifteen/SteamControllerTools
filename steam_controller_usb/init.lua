@@ -371,6 +371,10 @@ function sc_update_input(updateId)
 	lTrigger16Field = ProtoField.uint16("sc_update.input.LT.value16", "Left Trigger 16-bit value", base.DEC)
 	rTrigger16Field = ProtoField.uint16("sc_update.input.RT.value16", "Right Trigger 16-bit value", base.DEC)
 	
+	accelXField = ProtoField.float("sc_update.input.accel.x", "X acceleration", base.DEC)
+	accelYField = ProtoField.float("sc_update.input.accel.y", "Y acceleration", base.DEC)
+	accelZField = ProtoField.float("sc_update.input.accel.z", "Z acceleration", base.DEC)
+	
 	gyroPitchField = ProtoField.int16("sc_update.input.gyro.velocity.pitch", "Pitch velocity", base.DEC)
 	gyroYawField = ProtoField.int16("sc_update.input.gyro.velocity.yaw", "Yaw velocity", base.DEC)
 	gyroRollField = ProtoField.int16("sc_update.input.gyro.velocity.roll", "Roll velocity", base.DEC)
@@ -393,7 +397,7 @@ function sc_update_input(updateId)
 		gyroYawField, gyroRollField, gyroQuatWField, gyroQuatXField,
 		gyroQuatYField, gyroQuatZField, lPadXField, lPadYField,
 		lJoystickAbsXField, lJoystickAbsYField, lTriggerRawField, rTriggerRawField,
-		unpack(buttonFields)
+		accelXField, accelYField, accelZField, unpack(buttonFields)
 	}
 
 	function protocol.dissector(updateBuffer, pinfo, subtree)
@@ -429,10 +433,19 @@ function sc_update_input(updateId)
 		subtree:add_le(lTrigger16Field, lTrigger16Buf)
 		subtree:add_le(rTrigger16Field, rTrigger16Buf)
 		
+		local accelXBuf = updateBuffer(24,2)
+		local accelX = accelXBuf:le_int() / 16384.0
+		local accelYBuf = updateBuffer(26,2)
+		local accelY = accelYBuf:le_int() / 16384.0
+		local accelZBuf = updateBuffer(28,2)
+		local accelZ = accelZBuf:le_int() / 16384.0
+		subtree:add_le(accelXField, accelXBuf, accelX)
+		subtree:add_le(accelYField, accelYBuf, accelY)
+		subtree:add_le(accelZField, accelZBuf, accelZ)
+		
 		local gyroPitchBuf = updateBuffer(30,2)
 		local gyroRollBuf = updateBuffer(32,2)
 		local gyroYawBuf = updateBuffer(34,2)
-		
 		subtree:add_le(gyroPitchField, gyroPitchBuf)
 		subtree:add_le(gyroYawField, gyroYawBuf)
 		subtree:add_le(gyroRollField, gyroRollBuf)
