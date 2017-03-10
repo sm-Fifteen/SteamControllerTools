@@ -301,12 +301,12 @@ end
 -- Configure 0x2d : LED control
 ------------------------------------------------------
 
-function sc_config_led(confId)
+do
 	local confId = 0x2d
 	local protocol = Proto("CONFIG_LED",  "Set led brightness")
 
 	local brightnessField = ProtoField.uint8("sc_config.led.brightness", "Led brightness", base.DEC)
-	local protocol.fields = {brightnessField}
+	protocol.fields = {brightnessField}
 
 	function protocol.dissector(configBuffer, pinfo, configtree)
 		local brightnessBuf = configBuffer(0,1)
