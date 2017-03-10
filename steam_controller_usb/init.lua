@@ -375,9 +375,9 @@ function sc_update_input(updateId)
 	accelYField = ProtoField.float("sc_update.input.accel.y", "Y acceleration", base.DEC)
 	accelZField = ProtoField.float("sc_update.input.accel.z", "Z acceleration", base.DEC)
 	
-	gyroPitchField = ProtoField.int16("sc_update.input.gyro.velocity.pitch", "Pitch velocity", base.DEC)
-	gyroYawField = ProtoField.int16("sc_update.input.gyro.velocity.yaw", "Yaw velocity", base.DEC)
-	gyroRollField = ProtoField.int16("sc_update.input.gyro.velocity.roll", "Roll velocity", base.DEC)
+	gyroPitchField = ProtoField.float("sc_update.input.gyro.velocity.pitch", "Pitch velocity", base.DEC)
+	gyroYawField = ProtoField.float("sc_update.input.gyro.velocity.yaw", "Yaw velocity", base.DEC)
+	gyroRollField = ProtoField.float("sc_update.input.gyro.velocity.roll", "Roll velocity", base.DEC)
 	gyroQuatWField = ProtoField.int16("sc_update.input.gyro.orientation.w", "Orientation quaternion w", base.DEC)
 	gyroQuatXField = ProtoField.int16("sc_update.input.gyro.orientation.x", "Orientation quaternion x", base.DEC)
 	gyroQuatYField = ProtoField.int16("sc_update.input.gyro.orientation.y", "Orientation quaternion y", base.DEC)
@@ -433,6 +433,7 @@ function sc_update_input(updateId)
 		subtree:add_le(lTrigger16Field, lTrigger16Buf)
 		subtree:add_le(rTrigger16Field, rTrigger16Buf)
 		
+		-- Invensense MPU-6500 : 16384 LSB per G
 		local accelXBuf = updateBuffer(24,2)
 		local accelX = accelXBuf:le_int() / 16384.0
 		local accelYBuf = updateBuffer(26,2)
@@ -443,12 +444,16 @@ function sc_update_input(updateId)
 		subtree:add_le(accelYField, accelYBuf, accelY)
 		subtree:add_le(accelZField, accelZBuf, accelZ)
 		
+		-- Invensense MPU-6500 : 131 LSB per degree per second
 		local gyroPitchBuf = updateBuffer(30,2)
+		local gyroPitch = gyroPitchBuf:le_int() / 131.0
 		local gyroRollBuf = updateBuffer(32,2)
+		local gyroRoll = gyroRollBuf:le_int() / 131.0
 		local gyroYawBuf = updateBuffer(34,2)
-		subtree:add_le(gyroPitchField, gyroPitchBuf)
-		subtree:add_le(gyroYawField, gyroYawBuf)
-		subtree:add_le(gyroRollField, gyroRollBuf)
+		local gyroYaw = gyroYawBuf:le_int() / 131.0
+		subtree:add_le(gyroPitchField, gyroPitchBuf, gyroPitch)
+		subtree:add_le(gyroYawField, gyroYawBuf, gyroRoll)
+		subtree:add_le(gyroRollField, gyroRollBuf, gyroYaw)
 		
 		local gyroQuatWBuf = updateBuffer(36,2)
 		local gyroQuatXBuf = updateBuffer(38,2)
