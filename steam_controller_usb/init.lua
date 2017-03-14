@@ -129,6 +129,8 @@ sc_usb_setup = Proto("SC_USB_SETUP",  "USB Setup header")
 
 transferTypeField = Field.new("usb.transfer_type")
 urbTypeField = Field.new("usb.urb_type")
+usbDataFlag = Field.new("usb.data_flag")
+usbDataLength = Field.new("usb.data_len")
 
 function sc_usb_setup.dissector(tvb, pinfo, tree)
 	if tvb:len() == 0 then return false end
@@ -136,6 +138,11 @@ function sc_usb_setup.dissector(tvb, pinfo, tree)
 	-- myField() returns a FieldInfo object
 	local transferType = transferTypeField().value
 	local urbType = urbTypeField().value
+	local dataPresent = (usbDataFlag().value == "present (0)")
+	local dataLength = usbDataLength().value
+	
+	-- All SC messages are 64 bytes in length, there are false positives without that condition
+	if not dataPresent or dataLength ~= 64 then return false end
 	
 	if transferType == 2 and urbType == 83 then
 		-- Must be a control transfer, not an interrupt
