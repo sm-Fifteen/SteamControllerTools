@@ -14,38 +14,53 @@ do
 	local msgId = 0x8f
 	local protocol = Proto("feedback",  "Steam Controller feedback")
 
-	local hapticId = ProtoField.uint8("sc_msg_feedback.hapticId", "Selected acuator")
-	local hiPulseLength = ProtoField.uint16("sc_msg_feedback.hiPulseLength", "High pulse duration")
-	local loPulseLength = ProtoField.uint16("sc_msg_feedback.loPulseLength", "Low pulse duration")
-	local repeatCount = ProtoField.uint16("sc_msg_feedback.repeatCount", "Repetitions")
+	local hapticIdField = ProtoField.uint8("sc_msg_feedback.hapticId", "Selected acuator")
+	local hiPulseLengthField = ProtoField.uint16("sc_msg_feedback.hiPulseLength", "High pulse duration")
+	local loPulseLengthField = ProtoField.uint16("sc_msg_feedback.loPulseLength", "Low pulse duration")
+	local frequencyField = ProtoField.float("sc_msg_feedback.frequency", "Frequency")
+	local repeatCountField = ProtoField.uint16("sc_msg_feedback.repeatCount", "Repetitions")
 
 	protocol.fields = {
-		hapticId,
-		hiPulseLength,
-		loPulseLength,
-		repeatCount
+		hapticIdField,
+		hiPulseLengthField,
+		loPulseLengthField,
+		repeatCountField
 	}
 
 	function protocol.dissector(msgBuffer, pinfo, subtree)
-		local hapticIdBuf = msgBuffer(0,1);
-		local hiPulseLengthBuf = msgBuffer(1,2);
-		local loPulseLengthBuf = msgBuffer(3,2);
-		local repeatCountBuf = msgBuffer(5,2);
+		local hapticIdBuf = msgBuffer(0,1)
+		local hapticId = hapticIdBuf:uint()
+		local hiPulseLengthBuf = msgBuffer(1,2)
+		local hiPulseLength = hiPulseLengthBuf:le_uint()
+		local loPulseLengthBuf = msgBuffer(3,2)
+		local loPulseLength = loPulseLengthBuf:le_uint()
+		local repeatCountBuf = msgBuffer(5,2)
+		local repeatCount = repeatCountBuf:le_uint()
 		
-		if hapticIdBuf:uint() == 0 then hapticName = "LEFT"
+		if hapticId == 0 then hapticName = "LEFT"
 		else hapticName = "RIGHT" end
 		
-		period = (hiPulseLengthBuf:uint() + loPulseLengthBuf:uint());
-		if period ~= 0 then state = "AT " .. math.floor(1000000.0/period) .. " Hz"
-		else state = "STOP" end
+		local period = (hiPulseLength + loPulseLength)
+		local frequency = 0
+		if period ~= 0 then frequency = (1000000.0/period) end
+		
+		local state = "STOP"
+		if repeatCount == 1 then state = string.format("PULSE FOR %d µs", hiPulseLength)
+		elseif frequency ~= 0 then state = string.format("AT %.2f Hz", frequency) end
 		
 		updatePinfo(pinfo, msgId)
 		pinfo.cols.info:append(": " .. hapticName .. " " .. state)
 		
-		subtree:add(hapticId, hapticIdBuf)
-		subtree:add_le(hiPulseLength, hiPulseLengthBuf)
-		subtree:add_le(loPulseLength, loPulseLengthBuf)
-		subtree:add_le(repeatCount, repeatCountBuf)
+		subtree:add(hapticIdField, hapticIdBuf, hapticId, nil, string.format("(%s)", hapticName))
+		subtree:add_le(hiPulseLengthField, hiPulseLengthBuf, hiPulseLength, nil, "µs")
+		subtree:add_le(loPulseLengthField, loPulseLengthBuf, loPulseLength, nil, "µs")
+		
+		if repeatCount > 1 then
+			local frequencyEntry = subtree:add(frequencyField, frequency, nil, "Hz")
+			frequencyEntry:set_generated(true)
+		end
+		
+		subtree:add_le(repeatCountField, repeatCountBuf, repeatCount)
 		
 		return 7
 	end
@@ -102,10 +117,9 @@ do
 	function protocol.dissector(msgBuffer, pinfo, subtree)
 		local soundIdBuf = msgBuffer(0,1)
 		local soundId = soundIdBuf:uint()
-		
-		subtree:add(soundIdField, soundIdBuf)
 
 		local sound = builtinSounds[soundId] or "UNKNOWN";
+		subtree:add(soundIdField, soundIdBuf, soundId, nil, string.format("(%s)", sound))
 		updatePinfo(pinfo, msgId)
 		pinfo.cols.info:append(": " .. sound .. " (0x" .. tostring(soundIdBuf:bytes()) ..")")
 
@@ -166,8 +180,8 @@ do
 
 	function protocol.dissector(configBuffer, pinfo, configtree)
 		local brightnessBuf = configBuffer(0,1)
-		configtree:add(brightnessField, brightnessBuf)	
 		local brightness = brightnessBuf:uint()
+		configtree:add(brightnessField, brightnessBuf, brightness, nil, "%")
 		pinfo.cols.info:append(": " .. "LED TO " .. brightness .. "%")
 	end
 	

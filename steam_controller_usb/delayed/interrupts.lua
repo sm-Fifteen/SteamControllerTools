@@ -128,9 +128,9 @@ do
 		local accelY = accelYBuf:le_int() / 16384.0
 		local accelZBuf = updateBuffer(28,2)
 		local accelZ = accelZBuf:le_int() / 16384.0
-		subtree:add_le(accelXField, accelXBuf, accelX)
-		subtree:add_le(accelYField, accelYBuf, accelY)
-		subtree:add_le(accelZField, accelZBuf, accelZ)
+		subtree:add_le(accelXField, accelXBuf, accelX, nil, "G")
+		subtree:add_le(accelYField, accelYBuf, accelY, nil, "G")
+		subtree:add_le(accelZField, accelZBuf, accelZ, nil, "G")
 		
 		-- Invensense MPU-6500 : 131 LSB per degree per second
 		local gyroPitchBuf = updateBuffer(30,2)
@@ -139,9 +139,9 @@ do
 		local gyroYaw = gyroYawBuf:le_int() / 131.0
 		local gyroRollBuf = updateBuffer(34,2)
 		local gyroRoll = gyroRollBuf:le_int() / 131.0
-		subtree:add_le(gyroPitchField, gyroPitchBuf, gyroPitch)
-		subtree:add_le(gyroYawField, gyroYawBuf, gyroRoll)
-		subtree:add_le(gyroRollField, gyroRollBuf, gyroYaw)
+		subtree:add_le(gyroPitchField, gyroPitchBuf, gyroPitch, nil, "°/s")
+		subtree:add_le(gyroYawField, gyroYawBuf, gyroRoll, nil, "°/s")
+		subtree:add_le(gyroRollField, gyroRollBuf, gyroYaw, nil, "°/s")
 		
 		-- The doc doesn't provide the scaling value for quaternion components (since it's calculated by the DMP though sensor fusion).
 		-- I'ver seen some sources use 2^14 as a scaling factor for the chip, but the actual scale is 2^(16-1)
@@ -168,11 +168,11 @@ do
 		local gyroQuatPitch = math.atan2(2*gyroQuatX*gyroQuatY - 2*gyroQuatW*gyroQuatZ, 2*gyroQuatW*gyroQuatW + 2*gyroQuatX*gyroQuatX - 1)
 		local gyroQuatRoll = -math.asin(2*gyroQuatX*gyroQuatZ + 2*gyroQuatW*gyroQuatY)
 		local gyroQuatYaw = math.atan2(2*gyroQuatY*gyroQuatZ - 2*gyroQuatW*gyroQuatX, 2*gyroQuatW*gyroQuatW + 2*gyroQuatZ*gyroQuatZ - 1)
-		local gyroQuatPitchEntry = subtree:add(gyroQuatPitchField, math.deg(gyroQuatPitch))
+		local gyroQuatPitchEntry = subtree:add(gyroQuatPitchField, math.deg(gyroQuatPitch), nil, "°")
 		gyroQuatPitchEntry:set_generated(true)
-		local gyroQuatYawEntry = subtree:add(gyroQuatYawField, math.deg(gyroQuatYaw))
+		local gyroQuatYawEntry = subtree:add(gyroQuatYawField, math.deg(gyroQuatYaw), nil, "°")
 		gyroQuatYawEntry:set_generated(true)
-		local gyroQuatRollEntry = subtree:add(gyroQuatRollField, math.deg(gyroQuatRoll))
+		local gyroQuatRollEntry = subtree:add(gyroQuatRollField, math.deg(gyroQuatRoll), nil, "°")
 		gyroQuatRollEntry:set_generated(true)
 
 		local lTriggerRawBuf = updateBuffer(46,2)
@@ -216,11 +216,12 @@ do
 		subtree:add_le(sequenceField, sequenceBuf)
 		
 		local voltageBuf = updateBuffer(8,2)
-		subtree:add_le(voltageField, voltageBuf)
+		local voltage = voltageBuf:le_uint()
+		subtree:add_le(voltageField, voltageBuf, voltage, nil, "mV")
 		
 		updatePinfo(pinfo, updateId)
 		
-		--pinfo.cols.info:append(": " .. "LED TO " .. brightness .. "%")
+		pinfo.cols.info:append(string.format(": POWER SOURCE AT %.3f V", voltage/1000))
 		return 10
 	end
 	
