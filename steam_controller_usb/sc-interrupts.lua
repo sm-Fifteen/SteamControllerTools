@@ -133,10 +133,10 @@ do
 		-- Invensense MPU-6500 : 131 LSB per degree per second
 		local gyroPitchBuf = updateBuffer(30,2)
 		local gyroPitch = gyroPitchBuf:le_int() / 131.0
-		local gyroRollBuf = updateBuffer(32,2)
-		local gyroRoll = gyroRollBuf:le_int() / 131.0
-		local gyroYawBuf = updateBuffer(34,2)
+		local gyroYawBuf = updateBuffer(32,2)
 		local gyroYaw = gyroYawBuf:le_int() / 131.0
+		local gyroRollBuf = updateBuffer(34,2)
+		local gyroRoll = gyroRollBuf:le_int() / 131.0
 		subtree:add_le(gyroPitchField, gyroPitchBuf, gyroPitch)
 		subtree:add_le(gyroYawField, gyroYawBuf, gyroRoll)
 		subtree:add_le(gyroRollField, gyroRollBuf, gyroYaw)
@@ -164,8 +164,8 @@ do
 		subtree:add_le(gyroQuatWField, gyroQuatWBuf, gyroQuatW)
 		
 		local gyroQuatPitch = math.atan2(2*gyroQuatX*gyroQuatY - 2*gyroQuatW*gyroQuatZ, 2*gyroQuatW*gyroQuatW + 2*gyroQuatX*gyroQuatX - 1)
-		local gyroQuatYaw = -math.asin(2*gyroQuatX*gyroQuatZ + 2*gyroQuatW*gyroQuatY)
-		local gyroQuatRoll = math.atan2(2*gyroQuatY*gyroQuatZ - 2*gyroQuatW*gyroQuatX, 2*gyroQuatW*gyroQuatW + 2*gyroQuatZ*gyroQuatZ - 1)
+		local gyroQuatRoll = -math.asin(2*gyroQuatX*gyroQuatZ + 2*gyroQuatW*gyroQuatY)
+		local gyroQuatYaw = math.atan2(2*gyroQuatY*gyroQuatZ - 2*gyroQuatW*gyroQuatX, 2*gyroQuatW*gyroQuatW + 2*gyroQuatZ*gyroQuatZ - 1)
 		local gyroQuatPitchEntry = subtree:add(gyroQuatPitchField, math.deg(gyroQuatPitch))
 		gyroQuatPitchEntry:set_generated(true)
 		local gyroQuatYawEntry = subtree:add(gyroQuatYawField, math.deg(gyroQuatYaw))
