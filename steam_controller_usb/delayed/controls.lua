@@ -1,3 +1,5 @@
+print( (require 'debug').getinfo(1).source )
+
 require("bit")
 require("sc-shared")
 
