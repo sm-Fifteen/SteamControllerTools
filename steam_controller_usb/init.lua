@@ -373,10 +373,14 @@ do
 	local gyroPitchField = ProtoField.float("sc_update.input.gyro.velocity.pitch", "Pitch velocity", base.DEC)
 	local gyroYawField = ProtoField.float("sc_update.input.gyro.velocity.yaw", "Yaw velocity", base.DEC)
 	local gyroRollField = ProtoField.float("sc_update.input.gyro.velocity.roll", "Roll velocity", base.DEC)
-	local gyroQuatWField = ProtoField.int16("sc_update.input.gyro.orientation.w", "Orientation quaternion w", base.DEC)
-	local gyroQuatXField = ProtoField.int16("sc_update.input.gyro.orientation.x", "Orientation quaternion x", base.DEC)
-	local gyroQuatYField = ProtoField.int16("sc_update.input.gyro.orientation.y", "Orientation quaternion y", base.DEC)
-	local gyroQuatZField = ProtoField.int16("sc_update.input.gyro.orientation.z", "Orientation quaternion z", base.DEC)
+	local gyroQuatWField = ProtoField.float("sc_update.input.gyro.orientation.w", "Orientation quaternion w", base.DEC)
+	local gyroQuatXField = ProtoField.float("sc_update.input.gyro.orientation.x", "Orientation quaternion x", base.DEC)
+	local gyroQuatYField = ProtoField.float("sc_update.input.gyro.orientation.y", "Orientation quaternion y", base.DEC)
+	local gyroQuatZField = ProtoField.float("sc_update.input.gyro.orientation.z", "Orientation quaternion z", base.DEC)
+	-- Angles generated from the quat
+	local gyroQuatPitchField = ProtoField.float("sc_update.input.gyro.orientation.pitch", "Orientation pitch", base.DEC)
+	local gyroQuatYawField = ProtoField.float("sc_update.input.gyro.orientation.yaw", "Orientation yaw", base.DEC)
+	local gyroQuatRollField = ProtoField.float("sc_update.input.gyro.orientation.roll", "Orientation roll", base.DEC)
 	
 	local lPadXField = ProtoField.int16("sc_update.input.Lpad.x", "Left trackpad X", base.DEC)
 	local lPadYField = ProtoField.int16("sc_update.input.Lpad.y", "Left trackpad Y", base.DEC)
@@ -392,7 +396,8 @@ do
 		gyroYawField, gyroRollField, gyroQuatWField, gyroQuatXField,
 		gyroQuatYField, gyroQuatZField, lPadXField, lPadYField,
 		lJoystickAbsXField, lJoystickAbsYField, lTriggerRawField, rTriggerRawField,
-		accelXField, accelYField, accelZField, unpack(buttonFields)
+		accelXField, accelYField, accelZField, gyroQuatPitchField,
+		gyroQuatYawField, gyroQuatRollField, unpack(buttonFields)
 	}
 
 	function protocol.dissector(updateBuffer, pinfo, subtree)
@@ -450,14 +455,37 @@ do
 		subtree:add_le(gyroYawField, gyroYawBuf, gyroRoll)
 		subtree:add_le(gyroRollField, gyroRollBuf, gyroYaw)
 		
-		local gyroQuatWBuf = updateBuffer(36,2)
-		local gyroQuatXBuf = updateBuffer(38,2)
-		local gyroQuatYBuf = updateBuffer(40,2)
-		local gyroQuatZBuf = updateBuffer(42,2)
-		subtree:add_le(gyroQuatWField, gyroQuatWBuf)
-		subtree:add_le(gyroQuatXField, gyroQuatXBuf)
-		subtree:add_le(gyroQuatYField, gyroQuatYBuf)
-		subtree:add_le(gyroQuatZField, gyroQuatZBuf)
+		-- The doc doesn't provide the scaling value for quaternion components (since it's calculated by the DMP though sensor fusion).
+		-- I'ver seen some sources use 2^14 as a scaling factor for the chip, but the actual scale is 2^(16-1)
+		-- I guess that makes sense for a unit-value stored in a signed int16.
+		-- Also, the controller returns XYZW even though the DMP clearly returns WXYZ, JFC!
+		local gyroQuatXBuf = updateBuffer(36,2)
+		local gyroQuatYBuf = updateBuffer(38,2)
+		local gyroQuatZBuf = updateBuffer(40,2)
+		local gyroQuatWBuf = updateBuffer(42,2)
+		local gyroQuatX = gyroQuatXBuf:le_int() / 32768.0
+		local gyroQuatY = gyroQuatYBuf:le_int() / 32768.0
+		local gyroQuatZ = gyroQuatZBuf:le_int() / 32768.0
+		local gyroQuatW = gyroQuatWBuf:le_int() / 32768.0
+		
+		local gyroQuatNorm = math.sqrt(gyroQuatX^2+gyroQuatY^2+gyroQuatZ^2+gyroQuatW^2)
+		local gyroQuatNormEntry = subtree:add(gyroQuatNorm, "Orientation norm (should be ~1)")
+		gyroQuatNormEntry:set_generated(true)
+		
+		subtree:add_le(gyroQuatXField, gyroQuatXBuf, gyroQuatX)
+		subtree:add_le(gyroQuatYField, gyroQuatYBuf, gyroQuatY)
+		subtree:add_le(gyroQuatZField, gyroQuatZBuf, gyroQuatZ)
+		subtree:add_le(gyroQuatWField, gyroQuatWBuf, gyroQuatW)
+		
+		local gyroQuatPitch = math.atan2(2*gyroQuatX*gyroQuatY - 2*gyroQuatW*gyroQuatZ, 2*gyroQuatW*gyroQuatW + 2*gyroQuatX*gyroQuatX - 1)
+		local gyroQuatYaw = -math.asin(2*gyroQuatX*gyroQuatZ + 2*gyroQuatW*gyroQuatY)
+		local gyroQuatRoll = math.atan2(2*gyroQuatY*gyroQuatZ - 2*gyroQuatW*gyroQuatX, 2*gyroQuatW*gyroQuatW + 2*gyroQuatZ*gyroQuatZ - 1)
+		local gyroQuatPitchEntry = subtree:add(gyroQuatPitchField, math.deg(gyroQuatPitch))
+		gyroQuatPitchEntry:set_generated(true)
+		local gyroQuatYawEntry = subtree:add(gyroQuatYawField, math.deg(gyroQuatYaw))
+		gyroQuatYawEntry:set_generated(true)
+		local gyroQuatRollEntry = subtree:add(gyroQuatRollField, math.deg(gyroQuatRoll))
+		gyroQuatRollEntry:set_generated(true)
 
 		local lTriggerRawBuf = updateBuffer(46,2)
 		subtree:add_le(lTriggerRawField, lTriggerRawBuf)
