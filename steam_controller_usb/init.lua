@@ -154,7 +154,8 @@ end
 -- Type 0x8f : Feedback
 ------------------------------------------------------
 
-function sc_feedback(msgId)
+do
+	local msgId = 0x8f
 	local protocol = Proto("feedback",  "Steam Controller feedback")
 
 	local hapticId = ProtoField.uint8("sc_msg_feedback.hapticId", "Selected acuator")
@@ -196,13 +197,12 @@ function sc_feedback(msgId)
 	scPacketTable:add(msgId, protocol)
 end
 
-sc_feedback(0x8f)
-
 ------------------------------------------------------
 -- Type 0x81 : Disable lizard mode
 ------------------------------------------------------
 
-function sc_lizard_off(msgId)
+do
+	local msgId = 0x81
 	local protocol = Proto("lizard_off", "Steam Controller disable lizard mode")
 					
 	function protocol.dissector(msgBuffer, pinfo, subtree)
@@ -214,13 +214,12 @@ function sc_lizard_off(msgId)
 	scPacketTable:add(msgId, protocol)
 end
 
-sc_lizard_off(0x81)
-
 ------------------------------------------------------
 -- Type 0x85 : Enable lizard mode
 ------------------------------------------------------
 
-function sc_lizard_on(msgId)
+do
+	local msgId = 0x85
 	local protocol = Proto("lizard_on", "Steam Controller enable lizard mode")
 					
 	function protocol.dissector(msgBuffer, pinfo, subtree)
@@ -232,13 +231,12 @@ function sc_lizard_on(msgId)
 	scPacketTable:add(msgId, protocol)
 end
 
-sc_lizard_on(0x85)
-
 ------------------------------------------------------
 -- Type 0xB6 : Play builtin sound
 ------------------------------------------------------
 
-function sc_play_sound(msgId)
+do
+	local msgId = 0xb6
 	local protocol = Proto("play_sound", "Steam Controller builtin sound")
 
 	local soundIdField = ProtoField.uint8("sc_msg_feedback.soundId", "Sound Id")
@@ -261,13 +259,12 @@ function sc_play_sound(msgId)
 	scPacketTable:add(msgId, protocol)
 end
 
-sc_play_sound(0xb6)
-
 ------------------------------------------------------
 -- Type 0x87 : Configure
 ------------------------------------------------------
 
-function sc_config(msgId)
+do
+	local msgId = 0x87
 	local protocol = Proto("config", "Steam controller configuration")
 
 	local configTypeField = ProtoField.uint8("sc_msg_config.configType", "Configured field ID", base.HEX)
@@ -300,16 +297,15 @@ function sc_config(msgId)
 	scPacketTable:add(msgId, protocol)
 end
 
-sc_config(0x87)
-
 ------------------------------------------------------
 -- Configure 0x2d : LED control
 ------------------------------------------------------
 
-function sc_config_led(confId)
-	protocol = Proto("CONFIG_LED",  "Set led brightness")
+do
+	local confId = 0x2d
+	local protocol = Proto("CONFIG_LED",  "Set led brightness")
 
-	brightnessField = ProtoField.uint8("sc_config.led.brightness", "Led brightness", base.DEC)
+	local brightnessField = ProtoField.uint8("sc_config.led.brightness", "Led brightness", base.DEC)
 	protocol.fields = {brightnessField}
 
 	function protocol.dissector(configBuffer, pinfo, configtree)
@@ -322,18 +318,17 @@ function sc_config_led(confId)
 	scConfigTable:add(confId, protocol)
 end
 
-sc_config_led(0x2d)
-
 ------------------------------------------------------
 -- Update 0x01 : Input
 ------------------------------------------------------
 
-function sc_update_input(updateId)
-	protocol = Proto("UPDATE_INPUT",  "Input update")
+do
+	local updateId = 0x01
+	local protocol = Proto("UPDATE_INPUT",  "Input update")
 
-	sequenceField = ProtoField.uint32("sc_update.input.sequence", "Sequence number", base.DEC)
+	local sequenceField = ProtoField.uint32("sc_update.input.sequence", "Sequence number", base.DEC)
 	
-	buttonFields = {
+	local buttonFields = {
 		ProtoField.bool("sc_update.input.A", "A button", 24, {}, bit.lshift(1,23)),
 		ProtoField.bool("sc_update.input.X", "X button", 24, {}, bit.lshift(1,22)),
 		ProtoField.bool("sc_update.input.B", "B button", 24, {}, bit.lshift(1,21)),
@@ -362,33 +357,33 @@ function sc_update_input(updateId)
 		ProtoField.bool("sc_update.input.RG", "Right grip", 24, {}, bit.lshift(1,0)),
 	}
 	
-	lTriggerField = ProtoField.uint8("sc_update.input.LT.value8", "Left Trigger 8-bit value", base.DEC)
-	rTriggerField = ProtoField.uint8("sc_update.input.RT.value8", "Right Trigger 8-bit value", base.DEC)
-	lAnalogXField = ProtoField.int16("sc_update.input.Lanalog.x", "Left joystick/trackpad X", base.DEC)
-	lAnalogYField = ProtoField.int16("sc_update.input.Lanalog.y", "Left joystick/trackpad Y", base.DEC)
-	rAnalogXField = ProtoField.int16("sc_update.input.Rpad.x", "Right trackpad X", base.DEC)
-	rAnalogYField = ProtoField.int16("sc_update.input.Rpad.y", "Right trackpad Y", base.DEC)
-	lTrigger16Field = ProtoField.uint16("sc_update.input.LT.value16", "Left Trigger 16-bit value", base.DEC)
-	rTrigger16Field = ProtoField.uint16("sc_update.input.RT.value16", "Right Trigger 16-bit value", base.DEC)
+	local lTriggerField = ProtoField.uint8("sc_update.input.LT.value8", "Left Trigger 8-bit value", base.DEC)
+	local rTriggerField = ProtoField.uint8("sc_update.input.RT.value8", "Right Trigger 8-bit value", base.DEC)
+	local lAnalogXField = ProtoField.int16("sc_update.input.Lanalog.x", "Left joystick/trackpad X", base.DEC)
+	local lAnalogYField = ProtoField.int16("sc_update.input.Lanalog.y", "Left joystick/trackpad Y", base.DEC)
+	local rAnalogXField = ProtoField.int16("sc_update.input.Rpad.x", "Right trackpad X", base.DEC)
+	local rAnalogYField = ProtoField.int16("sc_update.input.Rpad.y", "Right trackpad Y", base.DEC)
+	local lTrigger16Field = ProtoField.uint16("sc_update.input.LT.value16", "Left Trigger 16-bit value", base.DEC)
+	local rTrigger16Field = ProtoField.uint16("sc_update.input.RT.value16", "Right Trigger 16-bit value", base.DEC)
 	
-	accelXField = ProtoField.float("sc_update.input.accel.x", "X acceleration", base.DEC)
-	accelYField = ProtoField.float("sc_update.input.accel.y", "Y acceleration", base.DEC)
-	accelZField = ProtoField.float("sc_update.input.accel.z", "Z acceleration", base.DEC)
+	local accelXField = ProtoField.float("sc_update.input.accel.x", "X acceleration", base.DEC)
+	local accelYField = ProtoField.float("sc_update.input.accel.y", "Y acceleration", base.DEC)
+	local accelZField = ProtoField.float("sc_update.input.accel.z", "Z acceleration", base.DEC)
 	
-	gyroPitchField = ProtoField.float("sc_update.input.gyro.velocity.pitch", "Pitch velocity", base.DEC)
-	gyroYawField = ProtoField.float("sc_update.input.gyro.velocity.yaw", "Yaw velocity", base.DEC)
-	gyroRollField = ProtoField.float("sc_update.input.gyro.velocity.roll", "Roll velocity", base.DEC)
-	gyroQuatWField = ProtoField.int16("sc_update.input.gyro.orientation.w", "Orientation quaternion w", base.DEC)
-	gyroQuatXField = ProtoField.int16("sc_update.input.gyro.orientation.x", "Orientation quaternion x", base.DEC)
-	gyroQuatYField = ProtoField.int16("sc_update.input.gyro.orientation.y", "Orientation quaternion y", base.DEC)
-	gyroQuatZField = ProtoField.int16("sc_update.input.gyro.orientation.z", "Orientation quaternion z", base.DEC)
+	local gyroPitchField = ProtoField.float("sc_update.input.gyro.velocity.pitch", "Pitch velocity", base.DEC)
+	local gyroYawField = ProtoField.float("sc_update.input.gyro.velocity.yaw", "Yaw velocity", base.DEC)
+	local gyroRollField = ProtoField.float("sc_update.input.gyro.velocity.roll", "Roll velocity", base.DEC)
+	local gyroQuatWField = ProtoField.int16("sc_update.input.gyro.orientation.w", "Orientation quaternion w", base.DEC)
+	local gyroQuatXField = ProtoField.int16("sc_update.input.gyro.orientation.x", "Orientation quaternion x", base.DEC)
+	local gyroQuatYField = ProtoField.int16("sc_update.input.gyro.orientation.y", "Orientation quaternion y", base.DEC)
+	local gyroQuatZField = ProtoField.int16("sc_update.input.gyro.orientation.z", "Orientation quaternion z", base.DEC)
 	
-	lPadXField = ProtoField.int16("sc_update.input.Lpad.x", "Left trackpad X", base.DEC)
-	lPadYField = ProtoField.int16("sc_update.input.Lpad.y", "Left trackpad Y", base.DEC)
-	lJoystickAbsXField = ProtoField.int16("sc_update.input.Lstick.absX", "Left joystick absolute X", base.DEC)
-	lJoystickAbsYField = ProtoField.int16("sc_update.input.Lstick.absY", "Left joystick absolute Y", base.DEC)
-	lTriggerRawField = ProtoField.uint16("sc_update.input.LT.valueRaw", "Left Trigger analog value")
-	rTriggerRawField = ProtoField.uint16("sc_update.input.RT.valueRaw", "Right Trigger analog value")
+	local lPadXField = ProtoField.int16("sc_update.input.Lpad.x", "Left trackpad X", base.DEC)
+	local lPadYField = ProtoField.int16("sc_update.input.Lpad.y", "Left trackpad Y", base.DEC)
+	local lJoystickAbsXField = ProtoField.int16("sc_update.input.Lstick.absX", "Left joystick absolute X", base.DEC)
+	local lJoystickAbsYField = ProtoField.int16("sc_update.input.Lstick.absY", "Left joystick absolute Y", base.DEC)
+	local lTriggerRawField = ProtoField.uint16("sc_update.input.LT.valueRaw", "Left Trigger analog value")
+	local rTriggerRawField = ProtoField.uint16("sc_update.input.RT.valueRaw", "Right Trigger analog value")
 	
 	protocol.fields = {
 		sequenceField, lTriggerField, rTriggerField,
@@ -488,17 +483,16 @@ function sc_update_input(updateId)
 	scUpdateTable:add(updateId, protocol)
 end
 
-sc_update_input(0x01)
-
 ------------------------------------------------------
 -- Update 0x04 : Power level
 ------------------------------------------------------
 
 function sc_update_power(updateId)
-	protocol = Proto("UPDATE_ENERGY",  "Battery update")
+	local updateId = 0x04
+	local protocol = Proto("UPDATE_ENERGY",  "Battery update")
 
-	sequenceField = ProtoField.uint8("sc_update.energy.sequence", "Sequence number", base.DEC)
-	voltageField = ProtoField.uint8("sc_update.energy.voltage", "Voltage", base.DEC)
+	local sequenceField = ProtoField.uint8("sc_update.energy.sequence", "Sequence number", base.DEC)
+	local voltageField = ProtoField.uint8("sc_update.energy.voltage", "Voltage", base.DEC)
 	protocol.fields = {sequenceField, voltageField}
 
 	function protocol.dissector(updateBuffer, pinfo, subtree)
@@ -516,8 +510,6 @@ function sc_update_power(updateId)
 	
 	scUpdateTable:add(updateId, protocol)
 end
-
-sc_update_power(0x04)
 
 ------------------------------------------------------
 -- Configure 0x30 : ???
