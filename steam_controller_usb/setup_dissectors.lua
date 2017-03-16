@@ -1,5 +1,7 @@
 print( (require 'debug').getinfo(1).source )
 
+require("sc-shared")
+
 scPacketTable = DissectorTable.get("sc_packet.msgType")
 scUpdateTable = DissectorTable.get("sc_update.stateType")
 
