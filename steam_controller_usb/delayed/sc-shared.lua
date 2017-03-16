@@ -1,3 +1,7 @@
+
+require_once=require"require_once"
+require_once"register_dissectors"
+
 ------------------------------------------------------
 -- Lookup table for built-in sound IDs
 ------------------------------------------------------
