@@ -13,10 +13,12 @@ do
 	local protocol = Proto("SC_MSG",  "Steam Controller packet")
 	local msgTypeField = ProtoField.uint8("sc_packet.msgType", "Message type", base.HEX)
 	local msgLengthField = ProtoField.uint8("sc_packet.msgLength", "Message length")
+	local rawPayloadField = ProtoField.bytes("sc_packet.unknownPayload", "Unknown Steam Controller message")
 
 	protocol.fields = {
 		msgTypeField,
-		msgLengthField
+		msgLengthField,
+		rawPayloadField
 	}
 
 	function protocol.dissector(dataBuffer, pinfo, tree)
@@ -37,7 +39,7 @@ do
 		
 		if packetDissector == nil then
 			updatePinfo(pinfo, msgType)
-			local undecodedEntry = subtree:add(msgBuffer(), "Unknown Steam Controller message")
+			local undecodedEntry = subtree:add(rawPayloadField, msgBuffer())
 			undecodedEntry:add_expert_info(PI_UNDECODED)
 			
 			return msgLength

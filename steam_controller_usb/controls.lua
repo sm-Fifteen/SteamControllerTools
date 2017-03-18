@@ -19,12 +19,14 @@ do
 	local loPulseLengthField = ProtoField.uint16("sc_msg_feedback.loPulseLength", "Low pulse duration")
 	local frequencyField = ProtoField.float("sc_msg_feedback.frequency", "Frequency")
 	local repeatCountField = ProtoField.uint16("sc_msg_feedback.repeatCount", "Repetitions")
+	local nflagsField = ProtoField.uint8("sc_msg_feedback.nFlags", "nFlags")
 
 	protocol.fields = {
 		hapticIdField,
 		hiPulseLengthField,
 		loPulseLengthField,
-		repeatCountField
+		repeatCountField,
+		nflagsField
 	}
 
 	function protocol.dissector(msgBuffer, pinfo, subtree)
@@ -62,7 +64,11 @@ do
 		
 		subtree:add_le(repeatCountField, repeatCountBuf, repeatCount)
 		
-		return 7
+		local nflagsBuf = msgBuffer(7,1)
+		local nflagsEntry = subtree:add_le(nflagsField, nflagsBuf)
+		nflagsEntry:add_expert_info(PI_UNDECODED, PI_NOTE)
+		
+		return 8
 	end
 
 	scPacketTable:add(msgId, protocol)
@@ -138,8 +144,9 @@ do
 	local protocol = Proto("config", "Steam controller configuration")
 
 	local configTypeField = ProtoField.uint8("sc_msg_config.configType", "Configured field ID", base.HEX)
+	local rawParamsField = ProtoField.bytes("sc_msg_config.rawParams", "Unknown Steam Controller config parameters", base.HEX)
 
-	protocol.fields = { configTypeField }
+	protocol.fields = { configTypeField, rawParamsField }
 
 	function protocol.dissector(msgBuffer, pinfo, subtree)
 		-- TODO : Actual error
@@ -156,10 +163,13 @@ do
 			
 			local configDissector = scConfigTable:get_dissector(configType)
 			
+			local paramsBuffer = configBuffer(1)
+			
 			if configDissector == nil then
-				configtree:add_expert_info(PI_UNDECODED)
+				local paramsEntry = configtree:add(rawParamsField, paramsBuffer)
+				paramsEntry:add_expert_info(PI_UNDECODED)
 			else
-				configDissector:call(configBuffer(1):tvb(), pinfo, configtree)
+				configDissector:call(paramsBuffer:tvb(), pinfo, configtree)
 			end
 		end
 	end
