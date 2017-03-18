@@ -35,18 +35,24 @@ do
 		ProtoField.bool("sc_update.input.Lpad.right", "Left trackpad right", 24, {}, bit.lshift(1,9)),
 		ProtoField.bool("sc_update.input.Lpad.up", "Left trackpad up", 24, {}, bit.lshift(1,8)),
 		
-		-- 7 is "Lanalog is sent for both Ljoystick and Lpad" (use with bit 3)
-		-- 6 is "Lclick is Ljoystick" (use with bit 1)
-		-- 5 seems unused
+		-- If the joystick is in use while the left trackpad is reporting input, this bit gets flipped
+		-- Every other frame will use sc_update.input.Lanalog to report the joystick position, the rest will report the trackpad position
+		-- sc_update.input.Lanalog.click is unaffected by this and will seemingly report a joystick click if both are clicked on all frames
+		ProtoField.bool("sc_update.input.Lanalog.simultaneous", "Left trackpad/joystick used at the same time", 24, {}, bit.lshift(1,7)), -- Use with bit 3 for disambiguation
+		ProtoField.bool("sc_update.input.Lstick.click", "Left joystick click", 24, {}, bit.lshift(1,6)), -- Use with bit 1 for disambiguation
+		ProtoField.bool("sc_update.input.unknownBit5", "Unknown bit 5", 24, {}, bit.lshift(1,5)), -- Appears unused
 		ProtoField.bool("sc_update.input.Rpad.touch", "Right trackpad touched", 24, {}, bit.lshift(1,4)),
 		ProtoField.bool("sc_update.input.Lpad.touch", "Left trackpad touched", 24, {}, bit.lshift(1,3)),
 		ProtoField.bool("sc_update.input.Rpad.click", "Right trackpad click", 24, {}, bit.lshift(1,2)),
-		ProtoField.bool("sc_update.input.Lpad.click", "Left trackpad/joystick click", 24, {}, bit.lshift(1,1)),	
+		ProtoField.bool("sc_update.input.Lanalog.click", "Left trackpad/joystick click", 24, {}, bit.lshift(1,1)),
 		ProtoField.bool("sc_update.input.RG", "Right grip", 24, {}, bit.lshift(1,0)),
 	}
 	
 	local lTriggerField = ProtoField.uint8("sc_update.input.LT.value8", "Left Trigger 8-bit value", base.DEC)
 	local rTriggerField = ProtoField.uint8("sc_update.input.RT.value8", "Right Trigger 8-bit value", base.DEC)
+	
+	local unknown9Field = ProtoField.bytes("sc_update.input.unknown9", "Unknown bytes 9-11")
+	
 	local lAnalogXField = ProtoField.int16("sc_update.input.Lanalog.x", "Left joystick/trackpad X", base.DEC)
 	local lAnalogYField = ProtoField.int16("sc_update.input.Lanalog.y", "Left joystick/trackpad Y", base.DEC)
 	local rAnalogXField = ProtoField.int16("sc_update.input.Rpad.x", "Right trackpad X", base.DEC)
@@ -72,10 +78,15 @@ do
 	
 	local lPadXField = ProtoField.int16("sc_update.input.Lpad.x", "Left trackpad X", base.DEC)
 	local lPadYField = ProtoField.int16("sc_update.input.Lpad.y", "Left trackpad Y", base.DEC)
+	
+	local unknown44Field = ProtoField.bytes("sc_update.input.unknown44", "Unknown bytes 44-45")
+	
 	local lJoystickAbsXField = ProtoField.int16("sc_update.input.Lstick.absX", "Left joystick absolute X", base.DEC)
-	local lJoystickAbsYField = ProtoField.int16("sc_update.input.Lstick.absY", "Left joystick absolute Y", base.DEC)
+	local lJoystickAbsYField = ProtoField.int16("sc_update.input.Lstick.absY", "Left joystick absolute Y", base.DEC)	
 	local lTriggerRawField = ProtoField.uint16("sc_update.input.LT.valueRaw", "Left Trigger analog value")
 	local rTriggerRawField = ProtoField.uint16("sc_update.input.RT.valueRaw", "Right Trigger analog value")
+	
+	local unknown58Field = ProtoField.bytes("sc_update.input.unknown58", "Unknown bytes 58-59")
 	
 	protocol.fields = {
 		sequenceField, lTriggerField, rTriggerField,
@@ -85,11 +96,13 @@ do
 		gyroQuatYField, gyroQuatZField, lPadXField, lPadYField,
 		lJoystickAbsXField, lJoystickAbsYField, lTriggerRawField, rTriggerRawField,
 		accelXField, accelYField, accelZField, gyroQuatPitchField,
-		gyroQuatYawField, gyroQuatRollField, unpack(buttonFields)
+		gyroQuatYawField, gyroQuatRollField,
+		unknown9Field, unknown44Field, unknown58Field,
+		unpack(buttonFields)
 	}
 
 	function protocol.dissector(updateBuffer, pinfo, subtree)
-		local sequenceBuf = updateBuffer(0,2)
+		local sequenceBuf = updateBuffer(0,4)
 		subtree:add_le(sequenceField, sequenceBuf)
 		
 		
@@ -105,6 +118,10 @@ do
 		local rTriggerBuf = updateBuffer(8,1)
 		subtree:add_le(lTriggerField, lTriggerBuf)
 		subtree:add_le(rTriggerField, rTriggerBuf)
+		
+		local unknown9Buf = updateBuffer(9,3)
+		local unknown9Entry = subtree:add_le(unknown9Field, unknown9Buf)
+		unknown9Entry:add_expert_info(PI_UNDECODED, PI_NOTE)
 		
 		local lAnalogXBuf = updateBuffer(12,2)
 		local lAnalogYBuf = updateBuffer(14,2)
@@ -175,6 +192,10 @@ do
 		local gyroQuatRollEntry = subtree:add(gyroQuatRollField, math.deg(gyroQuatRoll), nil, "°")
 		gyroQuatRollEntry:set_generated(true)
 
+		local unknown44Buf = updateBuffer(44,2)
+		local unknown44Entry = subtree:add_le(unknown44Field, unknown44Buf)
+		unknown44Entry:add_expert_info(PI_UNDECODED, PI_NOTE)
+
 		local lTriggerRawBuf = updateBuffer(46,2)
 		subtree:add_le(lTriggerRawField, lTriggerRawBuf)
 		
@@ -191,9 +212,14 @@ do
 		subtree:add_le(lPadXField, lPadXBuf)
 		subtree:add_le(lPadYField, lPadYBuf)
 		
+		local unknown58Buf = updateBuffer(58,2)
+		local unknown58Entry = subtree:add_le(unknown58Field, unknown58Buf)
+		unknown58Entry:add_expert_info(PI_UNDECODED, PI_NOTE)
+		
+		
 		updatePinfo(pinfo, updateId)
 		
-		return 58
+		return 60
 	end
 	
 	scUpdateTable:add(updateId, protocol)
@@ -207,22 +233,34 @@ do
 	local updateId = 0x04
 	local protocol = Proto("UPDATE_ENERGY",  "Battery update")
 
-	local sequenceField = ProtoField.uint8("sc_update.energy.sequence", "Sequence number", base.DEC)
+	local sequenceField = ProtoField.uint32("sc_update.energy.sequence", "Sequence number", base.DEC)
 	local voltageField = ProtoField.uint8("sc_update.energy.voltage", "Voltage", base.DEC)
-	protocol.fields = {sequenceField, voltageField}
+	
+	local unknown4Field = ProtoField.bytes("sc_update.energy.unknown4", "Unknown bytes 4-7")
+	local unknown10Field = ProtoField.bytes("sc_update.energy.unknown10", "Unknown byte 10")
+	
+	protocol.fields = {sequenceField, voltageField, unknown4Field, unknown10Field}
 
 	function protocol.dissector(updateBuffer, pinfo, subtree)
-		local sequenceBuf = updateBuffer(0,2)
+		local sequenceBuf = updateBuffer(4,4)
 		subtree:add_le(sequenceField, sequenceBuf)
+		
+		local unknown4Buf = updateBuffer(0,4)
+		local unknown4Entry = subtree:add_le(unknown4Field, unknown4Buf)
+		unknown4Entry:add_expert_info(PI_UNDECODED, PI_NOTE)
 		
 		local voltageBuf = updateBuffer(8,2)
 		local voltage = voltageBuf:le_uint()
 		subtree:add_le(voltageField, voltageBuf, voltage, nil, "mV")
 		
+		local unknown10Buf = updateBuffer(10,1)
+		local unknown10Entry = subtree:add_le(unknown10Field, unknown10Buf)
+		unknown10Entry:add_expert_info(PI_UNDECODED, PI_NOTE)
+		
 		updatePinfo(pinfo, updateId)
 		
 		pinfo.cols.info:append(string.format(": POWER SOURCE AT %.3f V", voltage/1000))
-		return 10
+		return 11
 	end
 	
 	scUpdateTable:add(updateId, protocol)
