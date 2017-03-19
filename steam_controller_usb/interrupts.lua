@@ -245,10 +245,10 @@ do
 	protocol.fields = {sequenceField, voltageField, unknown4Field, unknown10Field}
 
 	function protocol.dissector(updateBuffer, pinfo, subtree)
-		local sequenceBuf = updateBuffer(4,4)
+		local sequenceBuf = updateBuffer(0,4)
 		subtree:add_le(sequenceField, sequenceBuf)
 		
-		local unknown4Buf = updateBuffer(0,4)
+		local unknown4Buf = updateBuffer(4,4)
 		local unknown4Entry = subtree:add_le(unknown4Field, unknown4Buf)
 		unknown4Entry:add_expert_info(PI_UNDECODED, PI_NOTE)
 		
