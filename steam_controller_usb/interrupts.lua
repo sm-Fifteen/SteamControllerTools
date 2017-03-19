@@ -173,24 +173,27 @@ do
 		local gyroQuatZ = gyroQuatZBuf:le_int() / 32768.0
 		local gyroQuatW = gyroQuatWBuf:le_int() / 32768.0
 		
-		local gyroQuatNorm = math.sqrt(gyroQuatX^2+gyroQuatY^2+gyroQuatZ^2+gyroQuatW^2)
-		local gyroQuatNormEntry = subtree:add(gyroQuatNorm, "Orientation norm (should be ~1)")
-		gyroQuatNormEntry:set_generated(true)
-		
 		subtree:add_le(gyroQuatXField, gyroQuatXBuf, gyroQuatX)
 		subtree:add_le(gyroQuatYField, gyroQuatYBuf, gyroQuatY)
 		subtree:add_le(gyroQuatZField, gyroQuatZBuf, gyroQuatZ)
 		subtree:add_le(gyroQuatWField, gyroQuatWBuf, gyroQuatW)
 		
-		local gyroQuatPitch = math.atan2(2*gyroQuatX*gyroQuatY - 2*gyroQuatW*gyroQuatZ, 2*gyroQuatW*gyroQuatW + 2*gyroQuatX*gyroQuatX - 1)
-		local gyroQuatRoll = -math.asin(2*gyroQuatX*gyroQuatZ + 2*gyroQuatW*gyroQuatY)
-		local gyroQuatYaw = math.atan2(2*gyroQuatY*gyroQuatZ - 2*gyroQuatW*gyroQuatX, 2*gyroQuatW*gyroQuatW + 2*gyroQuatZ*gyroQuatZ - 1)
-		local gyroQuatPitchEntry = subtree:add(gyroQuatPitchField, math.deg(gyroQuatPitch), nil, "°")
-		gyroQuatPitchEntry:set_generated(true)
-		local gyroQuatYawEntry = subtree:add(gyroQuatYawField, math.deg(gyroQuatYaw), nil, "°")
-		gyroQuatYawEntry:set_generated(true)
-		local gyroQuatRollEntry = subtree:add(gyroQuatRollField, math.deg(gyroQuatRoll), nil, "°")
-		gyroQuatRollEntry:set_generated(true)
+		-- No need to do the calculations if the gyros are disabled
+		if (gyroQuatX+gyroQuatY+gyroQuatZ+gyroQuatW ~= 0) then
+			local gyroQuatNorm = math.sqrt(gyroQuatX^2+gyroQuatY^2+gyroQuatZ^2+gyroQuatW^2)
+			local gyroQuatNormEntry = subtree:add(gyroQuatNorm, "Orientation norm (should be ~1)")
+			gyroQuatNormEntry:set_generated(true)
+			
+			local gyroQuatPitch = math.atan2(2*gyroQuatX*gyroQuatY - 2*gyroQuatW*gyroQuatZ, 2*gyroQuatW*gyroQuatW + 2*gyroQuatX*gyroQuatX - 1)
+			local gyroQuatRoll = -math.asin(2*gyroQuatX*gyroQuatZ + 2*gyroQuatW*gyroQuatY)
+			local gyroQuatYaw = math.atan2(2*gyroQuatY*gyroQuatZ - 2*gyroQuatW*gyroQuatX, 2*gyroQuatW*gyroQuatW + 2*gyroQuatZ*gyroQuatZ - 1)
+			local gyroQuatPitchEntry = subtree:add(gyroQuatPitchField, math.deg(gyroQuatPitch), nil, "°")
+			gyroQuatPitchEntry:set_generated(true)
+			local gyroQuatYawEntry = subtree:add(gyroQuatYawField, math.deg(gyroQuatYaw), nil, "°")
+			gyroQuatYawEntry:set_generated(true)
+			local gyroQuatRollEntry = subtree:add(gyroQuatRollField, math.deg(gyroQuatRoll), nil, "°")
+			gyroQuatRollEntry:set_generated(true)
+		end
 
 		local unknown44Buf = updateBuffer(44,2)
 		local unknown44Entry = subtree:add_le(unknown44Field, unknown44Buf)
