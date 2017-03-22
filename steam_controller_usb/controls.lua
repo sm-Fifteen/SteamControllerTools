@@ -19,14 +19,14 @@ do
 	local loPulseLengthField = ProtoField.uint16("sc_msg_feedback.loPulseLength", "Low pulse duration")
 	local frequencyField = ProtoField.float("sc_msg_feedback.frequency", "Frequency")
 	local repeatCountField = ProtoField.uint16("sc_msg_feedback.repeatCount", "Repetitions")
-	local nflagsField = ProtoField.uint8("sc_msg_feedback.nFlags", "nFlags")
+	local priorityField = ProtoField.uint8("sc_msg_feedback.priority", "Haptic priority")
 
 	protocol.fields = {
 		hapticIdField,
 		hiPulseLengthField,
 		loPulseLengthField,
 		repeatCountField,
-		nflagsField
+		priorityField
 	}
 
 	function protocol.dissector(msgBuffer, pinfo, subtree)
@@ -64,9 +64,11 @@ do
 		
 		subtree:add_le(repeatCountField, repeatCountBuf, repeatCount)
 		
-		local nflagsBuf = msgBuffer(7,1)
-		local nflagsEntry = subtree:add_le(nflagsField, nflagsBuf)
-		nflagsEntry:add_expert_info(PI_UNDECODED, PI_NOTE)
+		-- SDK calls those nflags, but this is a priority index
+		-- While playing an haptic wave of priority n, all feedback messages with a lower priority will be ignored.
+		-- All feedback messages with an equal or greater priority will override the current one.
+		local priorityBuf = msgBuffer(7,1)
+		subtree:add_le(priorityField, priorityBuf)
 		
 		return 8
 	end
