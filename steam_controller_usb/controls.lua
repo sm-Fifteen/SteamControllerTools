@@ -14,7 +14,7 @@ do
 	local msgId = 0x8f
 	local protocol = Proto("feedback",  "Steam Controller feedback")
 
-	local hapticIdField = ProtoField.uint8("sc_msg_feedback.hapticId", "Selected acuator")
+	local hapticIdField = ProtoField.uint8("sc_msg_feedback.hapticId", "Selected acuator", base.UNIT_STRING, { [0] = "LEFT", [1] = "RIGHT" })
 	local hiPulseLengthField = ProtoField.uint16("sc_msg_feedback.hiPulseLength", "High pulse duration")
 	local loPulseLengthField = ProtoField.uint16("sc_msg_feedback.loPulseLength", "Low pulse duration")
 	local frequencyField = ProtoField.float("sc_msg_feedback.frequency", "Frequency")
@@ -39,21 +39,18 @@ do
 		local repeatCountBuf = msgBuffer(5,2)
 		local repeatCount = repeatCountBuf:le_uint()
 		
-		if hapticId == 0 then hapticName = "LEFT"
-		else hapticName = "RIGHT" end
-		
 		local period = (hiPulseLength + loPulseLength)
 		local frequency = 0
 		if period ~= 0 then frequency = (1000000.0/period) end
 		
 		local state = "STOP"
 		if repeatCount == 1 then state = string.format("PULSE FOR %d µs", hiPulseLength)
-		elseif frequency ~= 0 then state = string.format("AT %.2f Hz", frequency) end
+		elseif frequency ~= 0 then state = string.format("%.2f Hz", frequency) end
 		
 		updatePinfo(pinfo, msgId)
-		pinfo.cols.info:append(": " .. hapticName .. " " .. state)
+		pinfo.cols.info:append(": " .. state)
 		
-		subtree:add(hapticIdField, hapticIdBuf, hapticId, nil, string.format("(%s)", hapticName))
+		subtree:add(hapticIdField, hapticIdBuf)
 		subtree:add_le(hiPulseLengthField, hiPulseLengthBuf, hiPulseLength, nil, "µs")
 		subtree:add_le(loPulseLengthField, loPulseLengthBuf, loPulseLength, nil, "µs")
 		
