@@ -126,6 +126,7 @@ end
 sc_usb_setup = Proto("SC_USB_SETUP",  "USB Setup header")
 
 transferTypeField = Field.new("usb.transfer_type")
+-- Bug : Attempting to read usb.urb_type (type 3 : FT_UINT8) throws "FT_ not yet supported"???
 urbTypeField = Field.new("usb.urb_type")
 usbDataFlag = Field.new("usb.data_flag")
 usbDataLength = Field.new("usb.data_len")
