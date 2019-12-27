@@ -240,9 +240,9 @@ do
 	local voltageField = ProtoField.uint8("sc_update.energy.voltage", "Voltage", base.DEC)
 	
 	local unknown4Field = ProtoField.bytes("sc_update.energy.unknown4", "Unknown bytes 4-7")
-	local unknown10Field = ProtoField.bytes("sc_update.energy.unknown10", "Unknown byte 10")
+	local batteryLevelField = ProtoField.uint8("sc_update.energy.percent", "Battery level")
 	
-	protocol.fields = {sequenceField, voltageField, unknown4Field, unknown10Field}
+	protocol.fields = {sequenceField, voltageField, unknown4Field, batteryLevelField}
 
 	function protocol.dissector(updateBuffer, pinfo, subtree)
 		local sequenceBuf = updateBuffer(0,4)
@@ -256,9 +256,9 @@ do
 		local voltage = voltageBuf:le_uint()
 		subtree:add_le(voltageField, voltageBuf, voltage, nil, "mV")
 		
-		local unknown10Buf = updateBuffer(10,1)
-		local unknown10Entry = subtree:add_le(unknown10Field, unknown10Buf)
-		unknown10Entry:add_expert_info(PI_UNDECODED, PI_NOTE)
+		local batteryLevelBuf = updateBuffer(10,1)
+		local batteryLevel = batteryLevelBuf:uint()
+		subtree:add_le(batteryLevelField, batteryLevelBuf, batteryLevel, nil, "%")
 		
 		updatePinfo(pinfo, updateId)
 		

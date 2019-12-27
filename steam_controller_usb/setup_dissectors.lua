@@ -126,10 +126,10 @@ end
 sc_usb_setup = Proto("SC_USB_SETUP",  "USB Setup header")
 
 transferTypeField = Field.new("usb.transfer_type")
--- Bug : Attempting to read usb.urb_type (type 3 : FT_UINT8) throws "FT_ not yet supported"???
 urbTypeField = Field.new("usb.urb_type")
 usbDataFlag = Field.new("usb.data_flag")
 usbDataLength = Field.new("usb.data_len")
+usbDirectionField = Field.new("usb.endpoint_address.direction")
 
 function sc_usb_setup.dissector(tvb, pinfo, tree)
 	if tvb:len() == 0 then return false end
@@ -139,13 +139,14 @@ function sc_usb_setup.dissector(tvb, pinfo, tree)
 	local urbType = urbTypeField().value
 	local dataPresent = (usbDataFlag().value == "present (0)")
 	local dataLength = usbDataLength().value
+	local usbDirection = usbDirectionField().value
 	
 	-- All SC messages are 64 bytes in length, there are false positives without that condition
 	if not dataPresent or dataLength ~= 64 then return false end
 	
-	if transferType == 2 and urbType == 83 then
+	if transferType == 2 and urbType == 83 and usbDirection == 0 then
 		-- Must be a control transfer, not an interrupt
-		-- Must be of type "Submit", not "Complete"
+		-- Must be of type "Submit" when drection is OUT
 	
 		--bmRequestTypeBuf = tvb(0,1)
 		local bRequestBuf = tvb(0,1)
@@ -156,6 +157,10 @@ function sc_usb_setup.dissector(tvb, pinfo, tree)
 	
 		sc_packet_dissector:call(dataBuffer, pinfo, tree)
 		return 7 + dataBuffer:len();
+	elseif transferType == 2 and urbType == 67 and usbDirection == 1 then
+		-- Must be of type "Complete" when drection is IN
+		dataBuffer = tvb():tvb()
+		-- TODO: Add a reply dissector
 	elseif transferType == 1 and urbType == 67 then
 		dataBuffer = tvb():tvb()
 		return sc_update_dissector:call(dataBuffer, pinfo, tree)
